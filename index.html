@@ -148,14 +148,14 @@
             outline: none;
         }
 
-        /* ===== 🔧 修复重点：tags-filter 行间距 ===== */
+        /* ===== 修复 tags-filter 行间距 ===== */
         .tags-filter {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            align-content: flex-start;    /* 关键：防止行间距被 stretch 拉伸 */
-            column-gap: 0.4rem;           /* 列间距 */
-            row-gap: 0.4rem;              /* 行间距（明确控制） */
+            align-content: flex-start;
+            column-gap: 0.4rem;
+            row-gap: 0.4rem;
             flex: 2 1 300px;
         }
 
@@ -164,7 +164,7 @@
             color: #475569;
             font-size: 0.85rem;
             margin-right: 0.2rem;
-            flex-shrink: 0;               /* 防止被压缩 */
+            flex-shrink: 0;
         }
 
         .tags-filter .tag-chip {
@@ -376,6 +376,7 @@
             margin-bottom: 2rem;
         }
         .detail-media {
+            position: relative; /* 使内部绝对定位按钮相对此容器 */
             width: 100%;
             background: #f1f5f9;
             display: flex;
@@ -390,6 +391,7 @@
             object-fit: cover;
             display: block;
             max-height: 70vh;
+            cursor: zoom-in;
         }
         .detail-media video {
             width: 100%;
@@ -403,6 +405,28 @@
             width: 100%;
             height: 70vh;
             border: 0;
+        }
+
+        /* 图片放大遮罩 */
+        .img-zoom-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: zoom-out;
+        }
+        .img-zoom-overlay img {
+            max-width: 95vw;
+            max-height: 95vh;
+            object-fit: contain;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            cursor: zoom-out;
         }
 
         .detail-info {
@@ -504,7 +528,7 @@
             color: #475569;
         }
 
-        /* ===== 📱 移动端额外修复 ===== */
+        /* ===== 移动端额外修复 ===== */
         @media (max-width: 480px) {
             body { padding: 0.8rem; }
             .header { flex-direction: column; align-items: stretch; padding: 0.8rem; }
@@ -520,10 +544,9 @@
 
             .search-box { flex: auto; }
 
-            /* 🔧 移动端关键修复：防止 tags-filter 被拉伸，行间距更紧凑 */
             .tags-filter {
-                flex: 0 0 auto;          /* 不再被父容器拉伸 */
-                row-gap: 0.3rem;          /* 稍微收窄行间距 */
+                flex: 0 0 auto;
+                row-gap: 0.3rem;
             }
 
             .tags-filter .clear-btn {
@@ -787,12 +810,50 @@
         showListView();
     }
 
+    // ========== 新增：图片放大功能 ==========
+    function toggleImageZoom(img) {
+        // 如果已有遮罩则移除
+        const existing = document.querySelector('.img-zoom-overlay');
+        if (existing) {
+            existing.remove();
+            return;
+        }
+        const overlay = document.createElement('div');
+        overlay.className = 'img-zoom-overlay';
+        const clone = img.cloneNode(true);
+        clone.onclick = function(e) { e.stopPropagation(); }; // 防止点击图片关闭
+        overlay.appendChild(clone);
+        overlay.onclick = function() { this.remove(); };
+        document.body.appendChild(overlay);
+    }
+
+    // ========== 新增：视频横屏全屏 ==========
+    function toggleFullscreen(btn) {
+        const container = btn.closest('div');
+        const video = container.querySelector('video');
+        if (!video) return;
+        // 如果已全屏则退出
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+            return;
+        }
+        video.requestFullscreen().then(() => {
+            // 尝试锁定横屏
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(err => {
+                    console.warn('无法锁定横屏（可能被浏览器阻止）', err);
+                });
+            }
+        }).catch(err => {
+            alert('全屏请求被拒绝，请手动点击视频自带全屏按钮');
+        });
+    }
+
     // ---------- 渲染列表 ----------
     function render() {
         const container = document.getElementById('tagsFilterContainer');
         const allTags = getAllTags();
 
-        // 保留 .filter-label，后面动态追加标签和清除按钮
         let html = `<span class="filter-label"><i class="fas fa-tags"></i> 筛选：</span>`;
         allTags.forEach(tag => {
             const activeClass = activeFilters.includes(tag) ? 'active' : '';
@@ -847,7 +908,7 @@
         grid.innerHTML = gridHtml;
     }
 
-    // ---------- 渲染详情 ----------
+    // ---------- 渲染详情（新增图片点击放大和视频全屏按钮） ----------
     function renderDetail(id) {
         const item = mediaItems.find(i => i.id === id);
         if (!item) {
@@ -861,9 +922,18 @@
         if (item.type === 'bilibili') {
             content = `<iframe src="${item.url}" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>`;
         } else if (item.type === 'video') {
-            content = `<video src="${item.url}" controls autoplay muted playsinline></video>`;
+            // 视频：包裹相对定位容器，添加自定义全屏按钮（横屏）
+            content = `
+                <div style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                    <video src="${item.url}" controls autoplay muted playsinline style="width:100%; height:100%; object-fit:contain;"></video>
+                    <button onclick="toggleFullscreen(this)" style="position:absolute; bottom:20px; right:20px; background:rgba(0,0,0,0.6); border:none; color:white; padding:10px 12px; border-radius:50%; font-size:1.2rem; cursor:pointer; z-index:5; backdrop-filter:blur(4px);">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+            `;
         } else {
-            content = `<img src="${item.url}" alt="${item.name}" />`;
+            // 图片：添加点击放大事件
+            content = `<img src="${item.url}" alt="${item.name}" onclick="toggleImageZoom(this)" style="cursor:zoom-in;" />`;
         }
         mediaContainer.innerHTML = content;
 
@@ -990,12 +1060,15 @@
         showListView();
     });
 
+    // 暴露全局函数供 onclick 调用
     window.toggleFilter = toggleFilter;
     window.clearFilters = clearFilters;
     window.applyFilters = applyFilters;
     window.handleUpload = handleUpload;
     window.goToDetail = goToDetail;
     window.goBackToList = goBackToList;
+    window.toggleImageZoom = toggleImageZoom;
+    window.toggleFullscreen = toggleFullscreen;
 </script>
 
 </body>
