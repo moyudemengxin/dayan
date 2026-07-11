@@ -25,7 +25,6 @@
             margin: 0 auto;
         }
 
-        /* 视图切换 */
         .view {
             display: block;
         }
@@ -149,19 +148,25 @@
             outline: none;
         }
 
+        /* ===== 🔧 修复重点：tags-filter 行间距 ===== */
         .tags-filter {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 0.4rem;
+            align-content: flex-start;    /* 关键：防止行间距被 stretch 拉伸 */
+            column-gap: 0.4rem;           /* 列间距 */
+            row-gap: 0.4rem;              /* 行间距（明确控制） */
             flex: 2 1 300px;
         }
+
         .tags-filter .filter-label {
             font-weight: 600;
             color: #475569;
             font-size: 0.85rem;
             margin-right: 0.2rem;
+            flex-shrink: 0;               /* 防止被压缩 */
         }
+
         .tags-filter .tag-chip {
             padding: 4px 14px;
             border-radius: 40px;
@@ -185,6 +190,7 @@
             color: white;
             box-shadow: 0 4px 10px rgba(79,70,229,0.2);
         }
+
         .tags-filter .clear-btn {
             background: none;
             border: none;
@@ -194,7 +200,7 @@
             padding: 4px 10px;
             border-radius: 30px;
             transition: 0.2s;
-            margin-left: auto;
+            flex-shrink: 0;
         }
         .tags-filter .clear-btn:hover { background: #f1f5f9; color: #1e293b; }
 
@@ -217,7 +223,7 @@
             color: #854d0e;
         }
 
-        /* ===== 媒体网格（列表） ===== */
+        /* ===== 媒体网格 ===== */
         .media-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -371,14 +377,13 @@
         }
         .detail-media {
             width: 100%;
-            background: #f1f5f9;   /* 改为浅色背景，消除黑边 */
+            background: #f1f5f9;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 300px;
             max-height: 70vh;
         }
-        /* 图片使用 cover 填充，无黑边 */
         .detail-media img {
             width: 100%;
             height: 100%;
@@ -386,7 +391,6 @@
             display: block;
             max-height: 70vh;
         }
-        /* 视频保持比例，背景浅色 */
         .detail-media video {
             width: 100%;
             height: 100%;
@@ -436,13 +440,11 @@
             align-items: center;
             gap: 0.5rem;
         }
-        /* 相关推荐强制每行两个 */
         .detail-related .related-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
         }
-        /* 移动端仍保持两列，稍微缩小间距 */
         @media (max-width: 480px) {
             .detail-related .related-grid {
                 gap: 0.8rem;
@@ -502,19 +504,39 @@
             color: #475569;
         }
 
-        /* ===== 响应式微调 ===== */
+        /* ===== 📱 移动端额外修复 ===== */
         @media (max-width: 480px) {
             body { padding: 0.8rem; }
             .header { flex-direction: column; align-items: stretch; padding: 0.8rem; }
             .header h1 { font-size: 1.3rem; }
             .upload-area { border-radius: 30px; padding: 0.5rem; flex-wrap: wrap; }
             .upload-area input[type="text"] { width: 100%; }
-            .search-filter-bar { flex-direction: column; align-items: stretch; padding: 0.8rem; }
+
+            .search-filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 0.8rem;
+            }
+
             .search-box { flex: auto; }
-            .tags-filter .clear-btn { margin-left: 0; width: 100%; text-align: center; margin-top: 4px; }
+
+            /* 🔧 移动端关键修复：防止 tags-filter 被拉伸，行间距更紧凑 */
+            .tags-filter {
+                flex: 0 0 auto;          /* 不再被父容器拉伸 */
+                row-gap: 0.3rem;          /* 稍微收窄行间距 */
+            }
+
+            .tags-filter .clear-btn {
+                margin-left: 0;
+                width: 100%;
+                text-align: center;
+                margin-top: 0.2rem;
+            }
+
             .media-grid { gap: 0.8rem; }
             .media-card { border-radius: 16px; }
             .media-info { padding: 0.6rem 0.8rem 0.8rem; }
+
             .detail-info { padding: 1rem; }
             .detail-info .detail-title { font-size: 1.2rem; }
             .detail-media { min-height: 200px; max-height: 50vh; }
@@ -529,7 +551,6 @@
 <div class="app-container" id="app">
     <!-- ====== 列表视图 ====== -->
     <div id="listView" class="view">
-        <!-- 头部 -->
         <header class="header">
             <h1><i class="fas fa-photo-video"></i> 晚安 大眼</h1>
             <div class="upload-area">
@@ -542,7 +563,6 @@
             </div>
         </header>
 
-        <!-- 搜索 + 筛选 -->
         <div class="search-filter-bar">
             <div class="search-box">
                 <i class="fas fa-search"></i>
@@ -550,17 +570,15 @@
             </div>
             <div class="tags-filter" id="tagsFilterContainer">
                 <span class="filter-label"><i class="fas fa-tags"></i> 筛选：</span>
-                <button class="clear-btn" onclick="clearFilters()">清除筛选</button>
+                <!-- 动态由 js 渲染标签 -->
             </div>
         </div>
 
-        <!-- 统计 -->
         <div class="stats">
             <span>共 <span id="totalCount">0</span> 个媒体</span>
             <span class="local-tip"><i class="fas fa-info-circle"></i> 群友上传仅本地预览</span>
         </div>
 
-        <!-- 网格 -->
         <div class="media-grid" id="mediaGrid">
             <!-- 动态渲染 -->
         </div>
@@ -572,25 +590,19 @@
             <i class="fas fa-arrow-left"></i> 返回
         </button>
         <div class="detail-main">
-            <div class="detail-media" id="detailMedia">
-                <!-- 动态填充 -->
-            </div>
+            <div class="detail-media" id="detailMedia"></div>
             <div class="detail-info">
                 <div class="detail-title" id="detailTitle">标题</div>
                 <div class="detail-tags" id="detailTags"></div>
             </div>
         </div>
 
-        <!-- 关联推荐 -->
         <div class="detail-related">
             <h3><i class="fas fa-link"></i> 相关推荐</h3>
-            <div class="related-grid" id="relatedGrid">
-                <!-- 动态生成 -->
-            </div>
+            <div class="related-grid" id="relatedGrid"></div>
         </div>
     </div>
 
-    <!-- 免责声明（仅列表显示） -->
     <div id="footerDisclaimer" class="footer-disclaimer">
         <strong>⚠️ 免责声明：</strong> 
         本站为个人非商业兴趣分享平台，所有图片、视频及媒体内容均由群友上传或引用自网络公开链接， 
@@ -601,7 +613,7 @@
 
 <script>
     // ================================================================
-    // ========== ⭐ 这里替换你的数据 ==================================
+    // ========== 数据 =================================================
     // ================================================================
     const SAMPLE_DATA = [
         {
@@ -620,17 +632,104 @@
         },
         {
             id: 3,
+            name: '生日庆典',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525a32863c8635572e1297.jpg',
+            tags: ['生日', '图片']
+        },
+        {
+            id: 4,
+            name: '生日庆典',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525a46863c8635572e12af.jpg',
+            tags: ['生日', '图片']
+        },
+        {
+            id: 5,
+            name: '生日庆典',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525a61863c8635572e12ba.jpg',
+            tags: ['生日', '图片']
+        },
+        {
+            id: 6,
+            name: '尼娅',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525a6f863c8635572e12c3.jpg',
+            tags: ['尼娅', '图片']
+        },
+        {
+            id: 7,
+            name: '诗蔻蒂',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525a81863c8635572e12cb.jpg',
+            tags: ['诗蔻蒂', '图片']
+        },
+        {
+            id: 8,
+            name: '婚纱薇儿',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525a8e863c8635572e12d6.jpg',
+            tags: ['薇儿丹蒂', '图片']
+        },
+        {
+            id: 9,
+            name: '托特',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525aa0863c8635572e12f1.jpg',
+            tags: ['托特', '图片']
+        },
+        {
+            id: 10,
+            name: '雅典娜',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525aaa863c8635572e12f8.jpg',
+            tags: ['雅典娜', '图片']
+        },
+        {
+            id: 11,
+            name: '生日庆典',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525ab6863c8635572e12fb.jpg',
+            tags: ['生日', '图片']
+        },
+        {
+            id: 12,
+            name: '薇儿丹蒂',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525ac9863c8635572e1305.jpg',
+            tags: ['薇儿丹蒂', '图片']
+        },
+        {
+            id: 12,
+            name: '诗蔻蒂',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525ad0863c8635572e130a.jpg',
+            tags: ['诗蔻蒂', '图片']
+        },
+        {
+            id: 13,
+            name: '托特',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525f96863c8635572e1645.jpg',
+            tags: ['托特', '图片']
+        },
+        {
+            id: 14,
+            name: '泳装合照',
+            type: 'image',
+            url: 'https://pic1.imgdb.cn/item/6a525fd2863c8635572e1672.jpg',
+            tags: ['金乌', '大国主', '尼娅', '图片']
+        },
+        {
+            id: 16,
             name: 'B站示例视频',
             type: 'bilibili',
             url: '//player.bilibili.com/player.html?bvid=BV1N3411q7z7&page=1',
             tags: ['视频']
         }
     ];
-    // ================================================================
-    // ========== ⭐ 修改结束 ==========================================
-    // ================================================================
 
-    // ---------- 核心逻辑 ----------
     let mediaItems = [];
     let activeFilters = [];
     let searchKeyword = '';
@@ -666,7 +765,6 @@
         return result;
     }
 
-    // ---------- 视图切换 ----------
     function showListView() {
         document.getElementById('listView').classList.remove('hidden');
         document.getElementById('detailView').classList.add('hidden');
@@ -693,6 +791,8 @@
     function render() {
         const container = document.getElementById('tagsFilterContainer');
         const allTags = getAllTags();
+
+        // 保留 .filter-label，后面动态追加标签和清除按钮
         let html = `<span class="filter-label"><i class="fas fa-tags"></i> 筛选：</span>`;
         allTags.forEach(tag => {
             const activeClass = activeFilters.includes(tag) ? 'active' : '';
